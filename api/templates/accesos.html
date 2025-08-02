@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registros de Accesos</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f6fa; margin: 40px; }
+        .btn { padding: 12px 0; background: #3d5afe; color: #fff; border: none; border-radius: 12px; width: 200px; font-size: 1.3em; margin: 0 8px; cursor: pointer; }
+        .btn:hover { background: #0037fa; }
+        table { border-collapse: collapse; width: 90%; margin: 20px auto; background: #fff; box-shadow: 0 0 12px #aaa; }
+        th, td { border: 1px solid #ccc; padding: 10px 18px; text-align: center; }
+        th { background: #1976d2; color: #fff; }
+        tr:nth-child(even) { background: #f1f3f4; }
+        h1 { text-align: center; color: #263238; margin-bottom: 18px; }
+        .topbar { text-align: center; margin-bottom: 10px; }
+        a { color: #1565c0; font-weight: bold; text-decoration: none; }
+        a:hover { text-decoration: underline; color: #0d47a1; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <button class="btn" onclick="window.location.href='/admin/menu'">Volver al Menú</button>
+        <button class="btn" onclick="window.location.href='/admin/usuarios'">Ver Usuarios</button>
+        <button class="btn" onclick="window.location.href='/admin/accesos'">Ver Todos los Accesos</button>
+    </div>
+    <h1>
+        {% if usuario %}
+            Accesos de: {{ usuario.nombre }}
+        {% else %}
+            Registros de Accesos
+        {% endif %}
+    </h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Fecha de Acceso</th>
+        </tr>
+        {% if accesos|length == 0 %}
+        <tr>
+            <td colspan="4"><em>No hay accesos registrados</em></td>
+        </tr>
+        {% endif %}
+        {% for a in accesos %}
+        <tr>
+            <td>{{ a.id }}</td>
+            <td>{{ a.nombre }}</td>
+            <td>{{ a.tipo|capitalize }}</td>
+            <td>{{ a.fecha_acceso }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% if usuario %}
+    <div class="topbar" style="margin-top:14px;">
+        <a href="/admin/accesos"><button class="btn" style="width:auto;padding:7px 22px;font-size:1em;">Ver todos los accesos</button></a>
+    </div>
+    {% endif %}
+</body>
+</html>

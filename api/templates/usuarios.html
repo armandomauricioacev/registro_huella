@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Usuarios registrados</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f6fa; margin: 40px; }
+        .btn { padding: 12px 0; background: #3d5afe; color: #fff; border: none; border-radius: 12px; width: 200px; font-size: 1.3em; margin: 0 8px; cursor: pointer; }
+        .btn:hover { background: #0037fa; }
+        table { border-collapse: collapse; width: 90%; margin: 20px auto; background: #fff; box-shadow: 0 0 12px #aaa; }
+        th, td { border: 1px solid #ccc; padding: 10px 18px; text-align: center; }
+        th { background: #1976d2; color: #fff; }
+        tr:nth-child(even) { background: #f1f3f4; }
+        h1 { text-align: center; color: #263238; margin-bottom: 18px; }
+        .topbar { text-align: center; margin-bottom: 10px; }
+        .searchbar { text-align: center; margin-bottom: 8px; }
+        input[type="text"] { padding: 8px; border-radius: 6px; border: 1px solid #bbb; font-size: 1em; }
+        a { color: #1565c0; font-weight: bold; text-decoration: none; }
+        a:hover { text-decoration: underline; color: #0d47a1; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <button class="btn" onclick="window.location.href='/admin/menu'">Volver al Menú</button>
+    </div>
+    <h1>Usuarios Registrados</h1>
+    <form class="searchbar" method="get" action="/admin/usuarios">
+        <input type="text" name="id" placeholder="Buscar por ID" value="{{ id_buscar }}">
+        <input type="text" name="nombre" placeholder="Buscar por nombre" value="{{ nombre_buscar }}">
+        <button type="submit" class="btn" style="width:auto;padding:7px 22px;font-size:1em;">Buscar</button>
+        <a href="/admin/usuarios"><button type="button" class="btn" style="width:auto;padding:7px 22px;font-size:1em;">Ver Todos</button></a>
+        <a href="/admin/accesos"><button type="button" class="btn" style="width:auto;padding:7px 22px;font-size:1em;">Ver Todos los Accesos</button></a>
+    </form>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Huella</th>
+            <th>Fecha Registro</th>
+            <th>Accesos</th>
+        </tr>
+        {% if usuarios|length == 0 %}
+        <tr>
+            <td colspan="5"><em>No hay usuarios</em></td>
+        </tr>
+        {% endif %}
+        {% for u in usuarios %}
+        <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.nombre }}</td>
+            <td>{{ u.huella }}</td>
+            <td>{{ u.fecha_registro }}</td>
+            <td>
+                <a href="/admin/accesos/{{ u.id }}">Ver accesos</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

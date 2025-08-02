@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registros de Huellas</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f6fa; margin: 40px; }
+        table { border-collapse: collapse; width: 90%; margin: auto; background: #fff; box-shadow: 0 0 12px #aaa; }
+        th, td { border: 1px solid #ccc; padding: 10px 18px; text-align: center; }
+        th { background: #3d5afe; color: #fff; }
+        tr:nth-child(even) { background: #f1f3f4; }
+        h1 { text-align: center; color: #263238; }
+    </style>
+</head>
+<body>
+    <h1>Registros de Huellas</h1>
+    <table>
+        <tr>
+            <th>ID Huella</th>
+            <th>Nombre</th>
+            <th>ID Persona</th>
+            <th>Fecha de Registro</th>
+        </tr>
+        {% if huellas|length == 0 %}
+        <tr>
+            <td colspan="4"><em>No hay registros</em></td>
+        </tr>
+        {% endif %}
+        {% for h in huellas %}
+        <tr>
+            <td>{{ h.id_huella }}</td>
+            <td>{{ h.nombre }}</td>
+            <td>{{ h.id_persona }}</td>
+            <td>{{ h.fecha_registro }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
