@@ -8,7 +8,7 @@ import pytz
 app = Flask(__name__)
 CORS(app)
 
-# Configuración de la base de datos Railway
+# Configuración de la base de datos
 MYSQL_CONFIG = {
     "host": "crossover.proxy.rlwy.net",
     "port": 27645,
@@ -61,16 +61,15 @@ def registrar():
         f"{nombre.lower()}@example.com",
         "Generico",
         "Generico",
-        id_huella,           # HUELLAS COMO INT
-        '2000-01-01',        # fecha_nacimiento
-        1,                   # areas_id
-        1,                   # puesto_id
-        fecha_hora,          # fecha_registro (hora México)
-        1                    # status_id
+        id_huella,
+        '2000-01-01',
+        1,  # areas_id
+        1,  # puesto_id
+        fecha_hora,
+        1   # status_id
     )
     cursor.execute(sql, values)
     db.commit()
-
     cursor.close()
     db.close()
     return jsonify({
@@ -80,28 +79,18 @@ def registrar():
         'fecha_registro': fecha_hora
     })
 
-@app.route('/api/nombre/<int:id_huella>', methods=['GET'])
-def get_nombre(id_huella):
+@app.route('/api/usuario/actualizar_nombre', methods=['POST'])
+def actualizar_nombre_usuario():
+    data = request.json
+    usuario_id = data.get('id')
+    nuevo_nombre = data.get('nombre')
     db = get_db()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT nombre, id, fecha_registro
-        FROM usuario
-        WHERE huella = %s
-    """, (id_huella,))
-    result = cursor.fetchone()
+    cursor = db.cursor()
+    cursor.execute("UPDATE usuario SET nombre=%s WHERE id=%s", (nuevo_nombre, usuario_id))
+    db.commit()
     cursor.close()
     db.close()
-    if result:
-        return jsonify({
-            'status': 'ok',
-            'nombre': result['nombre'],
-            'id_huella': id_huella,
-            'id_usuario': result['id'],
-            'fecha_registro': result['fecha_registro']
-        })
-    else:
-        return jsonify({'status': 'not_found'})
+    return jsonify({'status': 'ok'})
 
 @app.route('/api/acceso', methods=['POST'])
 def registrar_acceso():
@@ -110,7 +99,6 @@ def registrar_acceso():
 
     db = get_db()
     cursor = db.cursor(dictionary=True)
-
     cursor.execute("SELECT id, nombre FROM usuario WHERE huella=%s", (id_huella,))
     usuario = cursor.fetchone()
     if not usuario:
@@ -121,7 +109,6 @@ def registrar_acceso():
     usuario_id = usuario['id']
     nombre = usuario['nombre']
 
-    # Revisar último acceso
     cursor.execute("""
         SELECT tipo FROM accesos_empleados
         WHERE usuario_id=%s
@@ -148,88 +135,51 @@ def registrar_acceso():
     db.close()
     return jsonify({'status': 'ok', 'mensaje': mensaje, 'tipo': tipo, 'fecha': now})
 
+# ===================== API para consulta en tiempo real =====================
+
+@app.route('/api/usuarios', methods=['GET'])
+def get_usuarios():
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT id, nombre, huella, fecha_registro
+        FROM usuario
+        ORDER BY id
+    """)
+    result = cursor.fetchall()
+    cursor.close()
+    db.close()
+    return jsonify(result)
+
+@app.route('/api/accesos', methods=['GET'])
+def api_accesos():
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT ae.id, u.nombre, ae.tipo, ae.fecha_acceso 
+        FROM accesos_empleados ae
+        JOIN usuario u ON ae.usuario_id = u.id
+        ORDER BY ae.fecha_acceso DESC
+        LIMIT 100
+    """)
+    accesos = cursor.fetchall()
+    cursor.close()
+    db.close()
+    return jsonify(accesos)
+
 # ===================== ADMIN - Panel Web =====================
 
 @app.route("/admin/menu")
 def admin_menu():
     return render_template("menu.html")
 
-@app.route('/admin/usuarios', methods=['GET'])
+@app.route('/admin/usuarios')
 def admin_usuarios():
-    id_buscar = request.args.get('id')
-    nombre_buscar = request.args.get('nombre')
-
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-    query = """
-        SELECT id, nombre, huella, fecha_registro
-        FROM usuario
-    """
-    filters = []
-    values = []
-    if id_buscar:
-        filters.append("id = %s")
-        values.append(id_buscar)
-    if nombre_buscar:
-        filters.append("nombre LIKE %s")
-        values.append(f"%{nombre_buscar}%")
-    if filters:
-        query += " WHERE " + " AND ".join(filters)
-    query += " ORDER BY id"
-
-    cursor.execute(query, tuple(values))
-    usuarios = cursor.fetchall()
-    cursor.close()
-    db.close()
-    return render_template('usuarios.html', usuarios=usuarios, id_buscar=id_buscar or "", nombre_buscar=nombre_buscar or "")
+    return render_template('usuarios.html')
 
 @app.route('/admin/accesos')
 def admin_accesos():
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT ae.id, u.nombre, ae.tipo, ae.fecha_acceso 
-        FROM accesos_empleados ae
-        JOIN usuario u ON ae.usuario_id = u.id
-        ORDER BY ae.fecha_acceso DESC
-    """)
-    accesos = cursor.fetchall()
-    cursor.close()
-    db.close()
-    return render_template("accesos.html", accesos=accesos, usuario=None)
-
-@app.route('/admin/accesos/<int:usuario_id>')
-def accesos_por_usuario(usuario_id):
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT ae.id, u.nombre, ae.tipo, ae.fecha_acceso 
-        FROM accesos_empleados ae
-        JOIN usuario u ON ae.usuario_id = u.id
-        WHERE u.id = %s
-        ORDER BY ae.fecha_acceso DESC
-    """, (usuario_id,))
-    accesos = cursor.fetchall()
-    cursor.execute("SELECT nombre FROM usuario WHERE id=%s", (usuario_id,))
-    usuario = cursor.fetchone()
-    cursor.close()
-    db.close()
-    return render_template("accesos.html", accesos=accesos, usuario=usuario)
-
-@app.route('/admin/huellas')
-def admin_huellas():
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT h.id_huella, u.nombre, u.id as id_persona, h.fecha_registro
-        FROM huellas h
-        LEFT JOIN usuario u ON h.id_persona = u.id
-        ORDER BY h.id_huella
-    """)
-    huellas = cursor.fetchall()
-    cursor.close()
-    db.close()
-    return render_template("huellas.html", huellas=huellas)
+    return render_template('accesos.html')
 
 @app.route("/")
 def index():
