@@ -2,129 +2,132 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Usuarios Registrados</title>
+    <title>Usuarios registrados</title>
     <style>
-        body { background: #f6f8fc; }
-        .container { margin: 40px auto; width: 90%; }
-        h1 { text-align: center; }
-        table { border-collapse: collapse; width: 100%; background: #fff; box-shadow: 0 0 12px #ccc; }
-        th, td { border: 1px solid #ccc; padding: 8px 16px; text-align: center; }
+        body { font-family: Arial, sans-serif; background: #f4f6fc; margin: 0; }
+        .container { max-width: 1000px; margin: 30px auto; background: #fff; border-radius: 12px; padding: 32px 38px; box-shadow: 0 0 25px #d2dbf7; }
+        h1 { text-align: center; color: #1a237e; font-size: 2.7em; }
+        table { border-collapse: collapse; width: 100%; margin-top: 22px; }
+        th, td { border: 1px solid #bdbdbd; padding: 12px 10px; text-align: center; font-size: 1.13em; }
         th { background: #2962ff; color: #fff; }
-        .btn-edit { color: #2962ff; cursor: pointer; text-decoration: underline; }
-        .modal-bg {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.3); align-items: center; justify-content: center; z-index: 10;
-        }
-        .modal {
-            background: #fff; padding: 32px 24px; border-radius: 16px; min-width: 350px; text-align: center;
-        }
-        .modal input { padding: 8px; width: 90%; margin-top: 10px; }
-        .modal button { margin-top: 12px; padding: 8px 18px; background: #2962ff; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
-        .alert { background: #ffe082; padding: 10px; margin: 10px 0; border-radius: 8px; text-align: center; font-weight: bold; }
+        tr:nth-child(even) { background: #e8f0fe; }
+        .btn { background: #2962ff; color: #fff; border: none; border-radius: 7px; padding: 8px 22px; font-size: 1em; cursor: pointer; margin: 0 4px; }
+        .btn-danger { background: #d32f2f; }
+        .btn-edit { background: #ffc107; color: #000; }
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(50,50,70,0.13); z-index: 999; }
+        #modal-content { background: #fff; max-width: 420px; margin: 80px auto; padding: 34px; border-radius: 11px; box-shadow: 0 0 18px #bdbdbd; }
+        #modal input { width: 94%; padding: 10px; font-size: 1em; margin-bottom: 15px; }
+        #modal-close { float: right; cursor: pointer; font-size: 1.6em; color: #888; }
+        .alerta { text-align:center; background:#4caf50;color:#fff; padding: 10px; margin-bottom: 14px; border-radius:6px; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Usuarios Registrados</h1>
-    <div id="alerta-pendiente"></div>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Huella</th>
-                <th>Fecha Registro</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody id="usuarios-tbody"></tbody>
-    </table>
-</div>
-
-<!-- Modal para actualizar nombre -->
-<div class="modal-bg" id="modal-bg">
-    <div class="modal">
-        <h3>Asignar nombre a la huella</h3>
-        <input type="text" id="nuevo-nombre" placeholder="Nombre del usuario">
-        <input type="hidden" id="usuario-id">
-        <div>
-            <button onclick="guardarNombre()">Guardar</button>
-            <button onclick="cerrarModal()">Cancelar</button>
+    <div class="container">
+        <h1>Usuarios Registrados</h1>
+        <div style="text-align:right; margin-bottom:8px;">
+            <button class="btn" onclick="window.location.href='/admin/menu'">Volver al menú</button>
         </div>
+        <div id="alerta"></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Huella</th>
+                    <th>Fecha Registro</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-usuarios">
+                <!-- Aquí van los usuarios -->
+            </tbody>
+        </table>
     </div>
-</div>
 
-<script>
-let usuariosData = [];
+    <!-- Modal para editar nombre -->
+    <div id="modal">
+      <div id="modal-content">
+        <span id="modal-close" onclick="cerrarModal()">&times;</span>
+        <h2>Asignar nombre a usuario</h2>
+        <input type="text" id="input-nombre" placeholder="Nombre completo">
+        <input type="hidden" id="input-id-usuario">
+        <button class="btn" onclick="guardarNombre()">Guardar</button>
+      </div>
+    </div>
 
-function fetchUsuarios() {
-    fetch('/api/usuarios')
-    .then(res => res.json())
-    .then(usuarios => {
-        usuariosData = usuarios;
-        renderUsuarios(usuarios);
-        buscarPendiente(usuarios);
-    });
-}
-
-function renderUsuarios(usuarios) {
-    let tbody = document.getElementById('usuarios-tbody');
-    tbody.innerHTML = '';
-    usuarios.forEach(u => {
-        tbody.innerHTML += `
-        <tr>
-            <td>${u.id}</td>
-            <td>${u.nombre}</td>
-            <td>${u.huella}</td>
-            <td>${u.fecha_registro}</td>
-            <td>${u.nombre === "Pendiente" ? `<span class="btn-edit" onclick="abrirModal(${u.id})">Asignar nombre</span>` : ''}</td>
-        </tr>`;
-    });
-}
-
-// Busca si hay pendientes y lanza alerta/modal
-function buscarPendiente(usuarios) {
-    let pendientes = usuarios.filter(u => u.nombre === "Pendiente");
-    let alerta = document.getElementById('alerta-pendiente');
-    if (pendientes.length > 0) {
-        alerta.innerHTML = `⚠️ Hay ${pendientes.length} huella(s) sin nombre. <span class="btn-edit" onclick="abrirModal(${pendientes[0].id})">Asignar ahora</span>`;
-        // Si quieres abrir automáticamente el modal cuando aparece uno nuevo:
-        // abrirModal(pendientes[0].id);
-    } else {
-        alerta.innerHTML = '';
-        cerrarModal();
+    <script>
+    // --- Cargar usuarios cada 3 segundos ---
+    function cargarUsuarios() {
+        fetch('/api/usuarios')
+        .then(res => res.json())
+        .then(usuarios => {
+            let rows = "";
+            usuarios.forEach(u => {
+                rows += `<tr>
+                    <td>${u.id}</td>
+                    <td>${u.nombre === "Pendiente" ? "<span style='color:red'>" + u.nombre + "</span>" : u.nombre}</td>
+                    <td>${u.huella}</td>
+                    <td>${u.fecha_registro}</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="abrirModal(${u.id}, '${u.nombre}')">Editar nombre</button>
+                        <button class="btn btn-danger" onclick="eliminarUsuario(${u.id})">Eliminar</button>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById("tabla-usuarios").innerHTML = rows;
+        });
     }
-}
+    setInterval(cargarUsuarios, 3000);
+    cargarUsuarios();
 
-function abrirModal(id) {
-    document.getElementById('modal-bg').style.display = 'flex';
-    document.getElementById('usuario-id').value = id;
-    document.getElementById('nuevo-nombre').value = '';
-}
-
-function cerrarModal() {
-    document.getElementById('modal-bg').style.display = 'none';
-}
-
-function guardarNombre() {
-    let id = document.getElementById('usuario-id').value;
-    let nombre = document.getElementById('nuevo-nombre').value.trim();
-    if (!nombre) {
-        alert("Introduce un nombre válido");
-        return;
+    // --- Modal ---
+    function abrirModal(id, nombre) {
+        document.getElementById('modal').style.display = 'block';
+        document.getElementById('input-id-usuario').value = id;
+        document.getElementById('input-nombre').value = nombre === "Pendiente" ? "" : nombre;
     }
-    fetch('/api/usuario/actualizar_nombre', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: id, nombre: nombre})
-    }).then(() => {
-        cerrarModal();
-        fetchUsuarios();
-    });
-}
-
-setInterval(fetchUsuarios, 4000); // Refresca usuarios cada 4 segundos
-window.onload = fetchUsuarios;
-</script>
+    function cerrarModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+    function guardarNombre() {
+        let id = document.getElementById('input-id-usuario').value;
+        let nombre = document.getElementById('input-nombre').value.trim();
+        if(nombre.length < 2){
+            alert('Nombre inválido');
+            return;
+        }
+        fetch('/api/usuario/actualizar_nombre', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id_usuario: id, nombre: nombre })
+        }).then(res => res.json())
+        .then(() => {
+            cerrarModal();
+            mostrarAlerta('¡Nombre actualizado!');
+            cargarUsuarios();
+        });
+    }
+    // --- Eliminar usuario ---
+    function eliminarUsuario(id){
+        if(!confirm('¿Seguro que deseas eliminar este usuario y su huella?')) return;
+        fetch('/api/usuario/eliminar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id_usuario: id })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            mostrarAlerta('Usuario eliminado. Si el lector está encendido, la huella también se eliminará del sensor.');
+            cargarUsuarios();
+        });
+    }
+    // --- Alerta flash ---
+    function mostrarAlerta(msg){
+        let a = document.getElementById('alerta');
+        a.innerText = msg;
+        a.style.display = 'block';
+        setTimeout(()=>a.style.display='none', 2700);
+    }
+    </script>
 </body>
 </html>
